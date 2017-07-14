@@ -1,0 +1,257 @@
+{
+        "kind": "Template",
+                "apiVersion": "v1",
+                "metadata": {
+                        "name": "image-runner",
+                        "annotations": {
+                                "iconClass": "icon-git",
+                                "description": "Application template for running existing Docker images",
+                                "tags": ""
+                        }
+                },
+                "labels": {
+                        "application": "image-runner",
+                        "createdBy": "template-image-runner"
+                },
+                "parameters": [
+                {
+                        "description": "The name for the application.",
+                        "name": "APPLICATION_NAME",
+                        "value": "image-runner"
+                },
+                {
+                        "description": "URI of Docker image to be run.",
+                        "name": "IMAGE_URI",
+                        "value": "centos/httpd"
+                },
+                {
+                        "description": "Custom hostname for service routes.  Leave blank for default hostname, e.g.: <application-name>.<project>.<default-domain-suffix>",
+                        "name": "APPLICATION_HOSTNAME"
+                },
+                {
+                        "description": "Git source URI for application",
+                        "name": "GIT_URI",
+                        "value": "https://github.com/gerald1248/image-runner.git"
+                },
+                {
+                        "description": "Git branch/tag reference",
+                        "name": "GIT_REF",
+                        "value": "master"
+                },
+                {
+                        "description": "GitHub trigger secret",
+                        "name": "GITHUB_TRIGGER_SECRET",
+                        "from": "[a-zA-Z0-9]{8}",
+                        "generate": "expression"
+                },
+                {
+                        "description": "Generic build trigger secret",
+                        "name": "GENERIC_TRIGGER_SECRET",
+                        "from": "[a-zA-Z0-9]{8}",
+                        "generate": "expression"
+                }
+        ],
+        "objects": [
+        {
+                "kind": "BuildConfig",
+                "apiVersion": "v1",
+                "metadata": {
+                        "name": "${APPLICATION_NAME}"
+                },
+                "spec": {
+                        "triggers": [
+                        {
+                                "type": "Generic",
+                                "generic": {
+                                        "secret": "${GENERIC_TRIGGER_SECRET}"
+                                }
+                        },
+                        {
+                                "type": "GitHub",
+                                "github": {
+                                        "secret": "${GITHUB_TRIGGER_SECRET}"
+                                }
+                        },
+                        {
+                                "type": "ImageChange",
+                                "imageChange": {}
+                        }
+                        ],
+                        "source": {
+                                "type": "Git",
+                                "git": {
+                                        "uri": "${GIT_URI}",
+                                        "ref": "${GIT_REF}"
+                                }
+                        },
+                        "strategy": {
+                                "type": "Source",
+                                "sourceStrategy": {
+                                        "from": {
+                                                "kind": "DockerImage",
+                                                "name": "${IMAGE_URI}"
+                                        },
+                                        "env": [
+                                        ]
+                                }
+                        },
+                        "output": {
+                                "to": {
+                                        "kind": "ImageStreamTag",
+                                        "name": "${APPLICATION_NAME}:latest"
+                                }
+                        }
+                }
+        },
+        {
+                "kind": "ImageStream",
+                "apiVersion": "v1",
+                "metadata": {
+                        "name": "${APPLICATION_NAME}"
+                },
+                "spec": {
+                        "dockerImageRepository": "",
+                        "tags": [
+                        {
+                                "name": "latest"
+                        }
+                        ]
+                }
+        },
+        {
+                "kind": "DeploymentConfig",
+                "apiVersion": "v1",
+                "metadata": {
+                        "name": "${APPLICATION_NAME}",
+                        "labels": {
+                                "deploymentConfig": "${APPLICATION_NAME}"
+                        }
+                },
+                "spec": {
+                        "strategy": {
+                                "type": "Rolling"
+                        },
+                        "triggers": [
+                        {
+                                "type": "ImageChange",
+                                "imageChangeParams": {
+                                        "automatic": true,
+                                        "containerNames": [
+                                                "${APPLICATION_NAME}"
+                                        ],
+                                        "from": {
+                                                "kind": "ImageStreamTag",
+                                                "name": "${APPLICATION_NAME}:latest"
+                                        }
+                                }
+                        },
+                        {
+                                "type": "ConfigChange"
+                        }
+                        ],
+                        "replicas": 1,
+                        "selector": {
+                                "deploymentConfig": "${APPLICATION_NAME}"
+                        },
+                        "template": {
+                                "metadata": {
+                                        "labels": {
+                                                "deploymentConfig": "${APPLICATION_NAME}"
+                                        }
+                                },
+                                "spec": {
+                                        "containers": [
+                                        {
+                                                "name": "${APPLICATION_NAME}",
+                                                "image": "${APPLICATION_NAME}",
+                                                "ports": [
+                                                {
+                                                        "name": "${APPLICATION_NAME}-http",
+                                                        "containerPort": 80,
+                                                        "protocol": "TCP"
+                                                }
+                                                ],
+                                                "resources": {
+                                                        "requests": {
+                                                                "cpu": "100m",
+                                                                "memory": "200Mi"
+                                                        },
+                                                        "limits": {
+                                                                "cpu": "200m",
+                                                                "memory": "400Mi"
+                                                        }
+                                                },
+                                                "readinessProbe": {
+                                                        "httpGet": {
+                                                                "path": "/",
+                                                                "port": 80,
+                                                                "initialDelaySeconds": 15,
+                                                                "timeoutSeconds": 1
+                                                        }
+                                                },
+                                                "livenessProbe": {
+                                                        "httpGet": {
+                                                                "path": "/",
+                                                                "port": 80,
+                                                                "initialDelaySeconds": 15,
+                                                                "timeoutSeconds": 1
+                                                        }
+                                                },
+                                                "env": [
+                                                ],
+                                                "resources": {},
+                                                "terminationMessagePath": "/dev/termination-log",
+                                                "imagePullPolicy": "Always",
+                                                "securityContext": {
+                                                        "capabilities": {},
+                                                        "privileged": false
+                                                }
+                                        }
+                                        ],
+                                        "restartPolicy": "Always",
+                                        "dnsPolicy": "ClusterFirst"
+                                }
+                        }
+                }
+        },
+        {
+                "kind": "Route",
+                "apiVersion": "v1",
+                "metadata": {
+                        "name": "${APPLICATION_NAME}",
+                        "annotations": {
+                                "description": "Route for application's HTTP service"
+                        }
+                },
+                "spec": {
+                        "host": "${APPLICATION_HOSTNAME}",
+                        "to": {
+                                "kind": "Service",
+                                "name": "${APPLICATION_NAME}"
+                        }
+                }
+        },
+        {
+                "kind": "Service",
+                "apiVersion": "v1",
+                "metadata": {
+                        "name": "${APPLICATION_NAME}",
+                        "annotations": {
+                                "description": "The web server's HTTP port"
+                        }
+                },
+                "spec": {
+                        "ports": [
+                        {
+                                "protocol": "TCP",
+                                "port": 8080,
+                                "targetPort": 8080
+                        }
+                        ],
+                        "selector": {
+                                "deploymentConfig": "${APPLICATION_NAME}"
+                        }
+                }
+        }
+        ]
+}
