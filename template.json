@@ -22,7 +22,7 @@
 								{
 												"description": "URI of Docker image to be run.",
 												"name": "IMAGE_URI",
-												"value": "openshift/wildfly-101-centos7"
+												"value": "centos/httpd"
 								},
 								{
 												"description": "Custom hostname for service routes.  Leave blank for default hostname, e.g.: <application-name>.<project>.<default-domain-suffix>",
