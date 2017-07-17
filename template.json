@@ -22,7 +22,8 @@
     {
       "description": "URI of Docker image to be run.",
       "name": "IMAGE_URI",
-      "value": "centos/httpd"
+      "value": "centos/httpd",
+      "required": true
     },
     {
       "description": "Custom hostname for service routes.  Leave blank for default hostname, e.g.: <application-name>.<project>.<default-domain-suffix>",
@@ -49,11 +50,6 @@
       "name": "GENERIC_TRIGGER_SECRET",
       "from": "[a-zA-Z0-9]{8}",
       "generate": "expression"
-    },
-    {
-      "description": "Service port",
-      "name": "SERVICE_PORT",
-      "value": "80"
     }
   ],
   "objects": [
@@ -187,7 +183,7 @@
                 "ports": [
                   {
                     "name": "${APPLICATION_NAME}-h",
-                    "containerPort": "${SERVICE_PORT}",
+                    "containerPort": 80,
                     "protocol": "TCP"
                   }
                 ],
@@ -204,7 +200,7 @@
                 "readinessProbe": {
                   "httpGet": {
                     "path": "/",
-                    "port": "${SERVICE_PORT}",
+                    "port": 80,
                     "initialDelaySeconds": 15,
                     "timeoutSeconds": 1
                   }
@@ -212,7 +208,7 @@
                 "livenessProbe": {
                   "httpGet": {
                     "path": "/",
-                    "port": "${SERVICE_PORT}",
+                    "port": 80,
                     "initialDelaySeconds": 15,
                     "timeoutSeconds": 1
                   }
@@ -264,8 +260,8 @@
         "ports": [
           {
             "protocol": "TCP",
-            "port": "${SERVICE_PORT}",
-            "targetPort": "${SERVICE_PORT}"
+            "port": 80,
+            "targetPort": 80
           }
         ],
         "selector": {
