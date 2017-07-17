@@ -265,7 +265,7 @@
           {
             "protocol": "TCP",
             "port": "${SERVICE_PORT}",
-            "targetPort": "${SERVICE_PORT"
+            "targetPort": "${SERVICE_PORT}"
           }
         ],
         "selector": {
