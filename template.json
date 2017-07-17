@@ -53,7 +53,7 @@
     {
       "description": "Service port",
       "name": "SERVICE_PORT",
-      "value": 80
+      "value": "80"
     }
   ],
   "objects": [
